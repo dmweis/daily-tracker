@@ -151,3 +151,13 @@ const HOVERED: Color = Color::from_rgb(
     0x7B as f32 / 255.0,
     0xC4 as f32 / 255.0,
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn months_days_same_length() {
+        assert_eq!(DAYS_IN_MONTHS.len(), MONTHS.len());
+    }
+}
