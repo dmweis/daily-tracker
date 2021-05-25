@@ -9,6 +9,7 @@ pub struct Dot<Message> {
     radius: f32,
     color: iced::Color,
     on_press: Message,
+    hovered: bool,
 }
 
 impl<Message> Dot<Message> {
@@ -17,6 +18,7 @@ impl<Message> Dot<Message> {
             radius,
             color,
             on_press,
+            hovered: false,
         }
     }
 }
@@ -47,19 +49,27 @@ where
         _clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> event::Status {
+        let bounds = layout.bounds();
+        // check if we need hovered decorations
+        if bounds.contains(cursor_position) {
+            self.hovered = true;
+        } else {
+            self.hovered = false;
+        }
         if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) = event {
-            let bounds = layout.bounds();
             if bounds.contains(cursor_position) {
                 messages.push(self.on_press.clone());
                 return event::Status::Captured;
             }
         }
+        // hovering doesn't mean we capture the event
         event::Status::Ignored
     }
 
     fn hash_layout(&self, state: &mut Hasher) {
         use std::hash::Hash;
         self.radius.to_bits().hash(state);
+        self.hovered.hash(state);
         Hash::hash_slice(
             &self
                 .color
@@ -79,13 +89,14 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) -> (Primitive, mouse::Interaction) {
+        let border_radius = if self.hovered { self.radius * 0.2 } else { 0.0 };
         (
             Primitive::Quad {
                 bounds: layout.bounds(),
                 background: Background::Color(self.color),
                 border_radius: self.radius,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
+                border_width: border_radius,
+                border_color: Color::BLACK,
             },
             mouse::Interaction::default(),
         )

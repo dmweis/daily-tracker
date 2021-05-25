@@ -12,7 +12,7 @@ const DAYS_IN_MONTHS: [u32; 12] = [31, 28, 31, 30, 31, 31, 30, 31, 30, 31, 30, 3
 const MONTHS: [&str; 12] = [
     "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
 ];
-const DOT_SIZE: f32 = 15.0;
+const DOT_SIZE: f32 = 20.0;
 
 const POSITIVE_COLOR: Color = Color::from_rgb(0.0, 1.0, 0.0);
 const NEGATIVE_COLOR: Color = Color::from_rgb(1.0, 0.0, 0.0);
@@ -112,11 +112,11 @@ impl Sandbox for DailyTracker {
 
                 month_column = month_column
                     .push(day)
-                    .push(Space::new(Length::Shrink, Length::Units(10)));
+                    .push(Space::new(Length::Shrink, Length::Units(8)));
             }
             row = row
                 .push(month_column)
-                .push(Space::new(Length::Units(20), Length::Shrink));
+                .push(Space::new(Length::Units(10), Length::Shrink));
         }
 
         let scrollable = Scrollable::new(&mut self.scroller_state)
