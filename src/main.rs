@@ -46,12 +46,11 @@ impl From<DayState> for Color {
 }
 
 #[derive(Default)]
-struct DailyTracker {
-    scroller_state: scrollable::State,
+struct CalendarTracker {
     day_states: HashMap<(u32, u32), DayState>,
 }
 
-impl DailyTracker {
+impl CalendarTracker {
     fn get_day(&self, day: (u32, u32)) -> DayState {
         *self.day_states.get(&day).unwrap_or(&DayState::None)
     }
@@ -59,6 +58,12 @@ impl DailyTracker {
     fn set_day(&mut self, day: (u32, u32), day_state: DayState) {
         self.day_states.insert(day, day_state);
     }
+}
+
+#[derive(Default)]
+struct DailyTracker {
+    scroller_state: scrollable::State,
+    calendar: CalendarTracker,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -83,9 +88,9 @@ impl Sandbox for DailyTracker {
 
     fn update(&mut self, message: Self::Message) {
         let Message::DayPressed(month, day) = message;
-        let current = self.get_day((month, day));
+        let current = self.calendar.get_day((month, day));
         let next = current.next();
-        self.set_day((month, day), next);
+        self.calendar.set_day((month, day), next);
     }
 
     fn view(&mut self) -> Element<'_, Self::Message> {
@@ -98,7 +103,7 @@ impl Sandbox for DailyTracker {
                 .push(Text::new(month_name.to_owned()).size(30));
             for day in 1..*day_count {
                 let date = (month as u32, day);
-                let day_state = self.get_day(date);
+                let day_state = self.calendar.get_day(date);
                 let day = Dot::new(
                     DOT_SIZE,
                     day_state.into(),
@@ -219,5 +224,19 @@ mod tests {
         assert_eq!(first, DayState::Positive);
         let second = first.next();
         assert_eq!(second, DayState::Negative);
+    }
+
+    #[test]
+    fn calendar_starts_none() {
+        let calendar = CalendarTracker::default();
+        assert_eq!(calendar.get_day((0, 0)), DayState::None);
+        assert_eq!(calendar.get_day((10, 10)), DayState::None);
+    }
+
+    #[test]
+    fn calendar_starts_correct() {
+        let mut calendar = CalendarTracker::default();
+        calendar.set_day((0, 0), DayState::Positive);
+        assert_eq!(calendar.get_day((0, 0)), DayState::Positive);
     }
 }
