@@ -1,8 +1,10 @@
 mod dot;
 
+use std::collections::HashMap;
+
 use dot::Dot;
 use iced::{
-    button, scrollable, Align, Background, Color, Column, Container, Element, Length, Row, Sandbox,
+    scrollable, Align, Background, Color, Column, Container, Element, Length, Row, Sandbox,
     Scrollable, Settings, Space, Text,
 };
 
@@ -10,16 +12,58 @@ const DAYS_IN_MONTHS: [u32; 12] = [31, 28, 31, 30, 31, 31, 30, 31, 30, 31, 30, 3
 const MONTHS: [&str; 12] = [
     "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
 ];
+const DOT_SIZE: f32 = 15.0;
 
-#[derive(Debug, Default)]
+const POSITIVE_COLOR: Color = Color::from_rgb(0.0, 1.0, 0.0);
+const NEGATIVE_COLOR: Color = Color::from_rgb(1.0, 0.0, 0.0);
+const MISSING: Color = Color::WHITE;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DayState {
+    None,
+    Positive,
+    Negative,
+}
+
+impl DayState {
+    fn next(&self) -> DayState {
+        match *self {
+            DayState::None => DayState::Positive,
+            DayState::Positive => DayState::Negative,
+            DayState::Negative => DayState::Positive,
+        }
+    }
+}
+
+impl From<DayState> for Color {
+    fn from(day_state: DayState) -> Self {
+        match day_state {
+            DayState::None => MISSING,
+            DayState::Positive => POSITIVE_COLOR,
+            DayState::Negative => NEGATIVE_COLOR,
+        }
+    }
+}
+
+#[derive(Default)]
 struct DailyTracker {
     scroller_state: scrollable::State,
-    button_state: button::State,
+    day_states: HashMap<(u32, u32), DayState>,
+}
+
+impl DailyTracker {
+    fn get_day(&self, day: (u32, u32)) -> DayState {
+        *self.day_states.get(&day).unwrap_or(&DayState::None)
+    }
+
+    fn set_day(&mut self, day: (u32, u32), day_state: DayState) {
+        self.day_states.insert(day, day_state);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    DayPressed(i32, i32),
+    DayPressed(u32, u32),
 }
 
 fn main() -> iced::Result {
@@ -37,7 +81,12 @@ impl Sandbox for DailyTracker {
         String::from("Daily tracker")
     }
 
-    fn update(&mut self, _message: Self::Message) {}
+    fn update(&mut self, message: Self::Message) {
+        let Message::DayPressed(month, day) = message;
+        let current = self.get_day((month, day));
+        let next = current.next();
+        self.set_day((month, day), next);
+    }
 
     fn view(&mut self) -> Element<'_, Self::Message> {
         let mut row = Row::new().width(Length::Shrink);
@@ -48,10 +97,12 @@ impl Sandbox for DailyTracker {
                 .align_items(Align::Center)
                 .push(Text::new(month_name.to_owned()).size(30));
             for day in 1..*day_count {
+                let date = (month as u32, day);
+                let day_state = self.get_day(date);
                 let day = Dot::new(
-                    20.0,
-                    Color::from_rgb(1.0, 0.0, 1.0),
-                    Message::DayPressed(month as i32, day as i32),
+                    DOT_SIZE,
+                    day_state.into(),
+                    Message::DayPressed(month as u32, day),
                 );
 
                 month_column = month_column
@@ -159,5 +210,14 @@ mod tests {
     #[test]
     fn months_days_same_length() {
         assert_eq!(DAYS_IN_MONTHS.len(), MONTHS.len());
+    }
+
+    #[test]
+    fn test_next_day_states() {
+        let start = DayState::None;
+        let first = start.next();
+        assert_eq!(first, DayState::Positive);
+        let second = first.next();
+        assert_eq!(second, DayState::Negative);
     }
 }
